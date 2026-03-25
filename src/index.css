@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary: #10b981;
+  --primary-dark: #059669;
+  --primary-light: #34d399; /* Updated */
+  --bg-color: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.7); /* New */
+  --glass-border: rgba(255, 255, 255, 0.2); /* New */
+  --border-radius-lg: 24px;
+  --border-radius-md: 16px;
+  --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
+  --shadow-hover: 0 20px 40px -10px rgba(16, 185, 129, 0.15);
+}
+
+[data-theme='dark'] {
+  --bg-color: #0f172a;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.card-ui {
+  background: white;
+  padding: 40px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-soft);
+  width: 100%;
+  max-width: 400px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.title {
+  text-align: center;
+  color: var(--text-main);
+  margin-bottom: 30px;
+  font-weight: 700;
+  font-size: 28px;
+}
+
+/* Beautiful custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.animated-route {
+  animation: marching-ants 15s linear infinite;
+}
+
+@keyframes marching-ants {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+.alert-marquee {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+  color: white;
+  padding: 10px 0;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1100;
+  display: flex;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+}
+
+.alert-marquee-text {
+  white-space: nowrap;
+  animation: scroll-left 25s linear infinite;
+}
+
+@keyframes scroll-left {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(-100%); }
+}
