@@ -116,10 +116,13 @@ function PharmacyDashboard() {
     try {
       await API.put(`/pharmacy-admin/${pharmaId}/settings`, values);
       message.success("Store database profile updated successfully!");
-      // Re-fetch to ensure all UI elements (like the header) match the new database name
+      // Optimistic state update for instant UI feedback
+      setSettings(prev => ({ ...prev, ...values }));
+      // Full re-fetch to ensure all server-calculated fields are correct
       await fetchDashboardData(pharmaId);
-    } catch {
-      message.error("Failed to patch pharmacy settings.");
+    } catch (err) {
+      console.error("Settings update failed:", err.response?.data || err.message);
+      message.error("Failed to patch pharmacy settings (Network Error).");
     } finally {
       setSaving(false);
     }
