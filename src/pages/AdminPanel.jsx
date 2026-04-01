@@ -1,7 +1,7 @@
 import { Layout, Menu, Avatar, Card, Row, Col, Typography, Table, Tag, message, Button, Form, Switch, Spin } from "antd";
 import { UserOutlined, DashboardOutlined, TeamOutlined, ShopOutlined, SettingOutlined, LogoutOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import API from "../services/api";
@@ -17,8 +17,13 @@ function AdminPanel() {
   const [pharmacies, setPharmacies] = useState([]);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalPharmacies: 0, pendingPharmacies: 0, activePharmacies: 0 });
+  const [sysSettings, setSysSettings] = useState({
+    enable_map_search: true,
+    auto_approval: false,
+    maintenance_mode: false
+  });
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     setLoading(true);
     try {
       const statsRes = await API.get('/admin/stats');
@@ -42,30 +47,49 @@ function AdminPanel() {
         status: 'Active'
       })));
 
+      const settingsRes = await API.get('/admin/settings');
+      const settingsMap = {};
+      settingsRes.data.forEach(s => {
+        settingsMap[s.settingKey] = s.settingValue === 'true';
+      });
+      setSysSettings(prev => ({ ...prev, ...settingsMap }));
+
     } catch (e) {
       console.warn("Could not fetch admin API data.", e);
       setStats({ totalUsers: 3, totalPharmacies: 2, pendingPharmacies: 1, activePharmacies: 1 });
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchAdminData();
-  }, []);
+  }, [fetchAdminData]);
 
   const handleApprove = async (key) => {
     try {
       await API.put(`/admin/pharmacies/${key}/approve`);
       message.success("Database Verification Granted!");
       fetchAdminData();
-      confetti({
-        particleCount: 200,
-        spread: 90,
-        origin: { y: 0.5 },
-        colors: ['#10b981', '#34d399', '#fadb14', '#059669']
-      });
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 200,
+          spread: 90,
+          origin: { y: 0.5 },
+          colors: ['#10b981', '#34d399', '#fadb14', '#059669']
+        });
+      }
     } catch (e) {
       message.error("Could not append verification state.");
+    }
+  };
+
+  const handleToggle = async (key, val) => {
+    try {
+      await API.post('/admin/settings', { settingKey: key, settingValue: val.toString() });
+      setSysSettings(prev => ({ ...prev, [key]: val }));
+      message.success(`System ${key} propagated successfully.`);
+    } catch (error) {
+      message.error("Failed to update system logic via API.");
     }
   };
 
@@ -192,16 +216,18 @@ function AdminPanel() {
                 {activeKey === '4' && (
                   <Card bordered={false} style={{ borderRadius: "24px", boxShadow: "var(--shadow-soft)", maxWidth: "800px" }}>
                     <Form layout="vertical">
-                      <Form.Item label={<b>Enable Global Map Search Database Ping</b>} valuePropName="checked" initialValue={true}>
-                        <Switch /> <Text type="secondary" style={{marginLeft: 10}}>Allows users to search pharmacies dynamically near them.</Text>
+                      <Form.Item label={<b>Enable Global Map Search Database Ping</b>}>
+                        <Switch checked={sysSettings.enable_map_search} onChange={(val) => handleToggle('enable_map_search', val)} /> 
+                        <Text type="secondary" style={{marginLeft: 10}}>Allows users to search pharmacies dynamically near them.</Text>
                       </Form.Item>
-                      <Form.Item label={<b>Automatic Vendor Database Write Approval</b>} valuePropName="checked" initialValue={false}>
-                        <Switch /> <Text type="secondary" style={{marginLeft: 10}}>Automatically verify and approve pharmacy requests via API.</Text>
+                      <Form.Item label={<b>Automatic Vendor Database Write Approval</b>}>
+                        <Switch checked={sysSettings.auto_approval} onChange={(val) => handleToggle('auto_approval', val)} /> 
+                        <Text type="secondary" style={{marginLeft: 10}}>Automatically verify and approve pharmacy requests via API.</Text>
                       </Form.Item>
-                      <Form.Item label={<b>Platform Maintenance Node Kill Switch</b>} valuePropName="checked" initialValue={false}>
-                        <Switch /> <Text type="secondary" style={{marginLeft: 10}}>Disables login and shows maintenance page to all users.</Text>
+                      <Form.Item label={<b>Platform Maintenance Node Kill Switch</b>}>
+                        <Switch checked={sysSettings.maintenance_mode} onChange={(val) => handleToggle('maintenance_mode', val)} /> 
+                        <Text type="secondary" style={{marginLeft: 10}}>Disables login and shows maintenance page to all users.</Text>
                       </Form.Item>
-                      <Button type="primary" size="large" style={{ borderRadius: "10px", fontWeight: "bold" }} onClick={() => message.success("System configurations propagated to MySQL successfully.")}>Commit to Root Database</Button>
                     </Form>
                   </Card>
                 )}
