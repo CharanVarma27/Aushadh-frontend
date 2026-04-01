@@ -1,8 +1,7 @@
 import { Layout, Menu, Avatar, Card, Row, Col, Typography, Table, Tag, Button, Modal, Form, Input, InputNumber, message, Badge, Spin } from "antd";
 import { UserOutlined, DashboardOutlined, MedicineBoxOutlined, InboxOutlined, FileTextOutlined, SettingOutlined, LogoutOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import API from "../services/api";
 
 const { Header, Sider, Content } = Layout;
@@ -16,47 +15,64 @@ function PharmacyDashboard() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   
-  // Using static Pharmacy ID 1 for demonstration
-  const PHARMA_ID = 1;
+  const [pharmaId, setPharmaId] = useState(null);
 
   const [inventory, setInventory] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [stats, setStats] = useState({ totalRevenue: 0, pendingReservations: 0, lowStockCount: 0 });
   const [settings, setSettings] = useState({ name: 'Pharmacy', email: '', phone: '', address: '', city: '' });
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async (id) => {
+    if (!id) return;
     setLoading(true);
     try {
-      const statsRes = await API.get(`/pharmacy-admin/${PHARMA_ID}/stats`);
+      const statsRes = await API.get(`/pharmacy-admin/${id}/stats`);
       setStats(statsRes.data);
       
-      const invRes = await API.get(`/pharmacy-admin/${PHARMA_ID}/inventory`);
+      const invRes = await API.get(`/pharmacy-admin/${id}/inventory`);
       setInventory(invRes.data);
 
-      const resRes = await API.get(`/pharmacy-admin/${PHARMA_ID}/reservations`);
+      const resRes = await API.get(`/pharmacy-admin/${id}/reservations`);
       setReservations(resRes.data);
 
-      const setRes = await API.get(`/pharmacy-admin/${PHARMA_ID}/settings`);
+      const setRes = await API.get(`/pharmacy-admin/${id}/settings`);
       setSettings(setRes.data);
     } catch (e) {
       console.warn("Backend not yet fully seeded. Loading fallback mock data.", e);
-      // Fallback mocks if DB is empty to prevent crash
       setStats({ totalRevenue: 12450, pendingReservations: 24, lowStockCount: 2 });
       setInventory([{ key: '1', name: 'Paracetamol 500mg', stock: 120, price: 45, status: 'In Stock' }]);
       setReservations([{ id: 101, medicine: 'Paracetamol 500mg', customer: 'Charan Varma', date: 'Today', status: 'Pending Pickup', amount: 45 }]);
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    const init = async () => {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) {
+        navigate("/login");
+        return;
+      }
+      const user = JSON.parse(userStr);
+      try {
+        const res = await API.get(`/pharmacy-admin/my-store?ownerId=${user.id}`);
+        setPharmaId(res.data.id);
+        fetchDashboardData(res.data.id);
+      } catch (e) {
+        console.error("Could not find linked pharmacy for user.", e);
+        // Fallback or handle appropriately
+        message.error("No pharmacy node linked to this account.");
+        setLoading(false);
+      }
+    };
+    init();
+  }, [navigate, fetchDashboardData]);
 
   const handleRestock = async (invId) => {
     try {
       await API.put(`/pharmacy-admin/inventory/${invId}/restock?amount=50`);
       message.success("Stock increased by 50 units via Database!");
-      fetchDashboardData();
+      fetchDashboardData(pharmaId);
     } catch (e) {
       console.error(e);
       message.error("Failed to restock item in database.");
@@ -65,11 +81,11 @@ function PharmacyDashboard() {
 
   const handleAddMedicine = async (values) => {
     try {
-      await API.post(`/pharmacy-admin/${PHARMA_ID}/inventory`, values);
+      await API.post(`/pharmacy-admin/${pharmaId}/inventory`, values);
       message.success(`${values.name} persisted to database inventory!`);
       setIsModalVisible(false);
       form.resetFields();
-      fetchDashboardData();
+      fetchDashboardData(pharmaId);
     } catch (e) {
       console.error(e);
       message.error("Failed to add medicine to database.");
@@ -80,7 +96,7 @@ function PharmacyDashboard() {
     try {
       await API.put(`/pharmacy-admin/reservations/${resId}/status?status=Handed Over`);
       message.success("Order resolved successfully!");
-      fetchDashboardData();
+      fetchDashboardData(pharmaId);
     } catch(e) {
       message.error("Could not update reservation status.");
     }
@@ -88,9 +104,9 @@ function PharmacyDashboard() {
 
   const handleSaveSettings = async (values) => {
     try {
-      await API.put(`/pharmacy-admin/${PHARMA_ID}/settings`, values);
+      await API.put(`/pharmacy-admin/${pharmaId}/settings`, values);
       message.success("Store database profile updated successfully!");
-      fetchDashboardData();
+      fetchDashboardData(pharmaId);
     } catch (e) {
       message.error("Failed to patch pharmacy settings.");
     }
