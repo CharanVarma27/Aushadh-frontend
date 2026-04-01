@@ -15,6 +15,7 @@ function PharmacyDashboard() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
   const [pharmaId, setPharmaId] = useState(null);
 
@@ -69,6 +70,13 @@ function PharmacyDashboard() {
     init();
   }, [navigate, fetchDashboardData]);
 
+  // Sync form when settings are loaded from the backend
+  useEffect(() => {
+    if (settings && activeKey === '4') {
+      form.setFieldsValue(settings);
+    }
+  }, [settings, activeKey, form]);
+
   const handleRestock = async (invId) => {
     try {
       await API.put(`/pharmacy-admin/inventory/${invId}/restock?amount=50`);
@@ -104,12 +112,16 @@ function PharmacyDashboard() {
   };
 
   const handleSaveSettings = async (values) => {
+    setSaving(true);
     try {
       await API.put(`/pharmacy-admin/${pharmaId}/settings`, values);
       message.success("Store database profile updated successfully!");
-      fetchDashboardData(pharmaId);
+      // Re-fetch to ensure all UI elements (like the header) match the new database name
+      await fetchDashboardData(pharmaId);
     } catch {
       message.error("Failed to patch pharmacy settings.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -250,7 +262,15 @@ function PharmacyDashboard() {
                       <Form.Item label={<b>Physical Address Node</b>} name="address">
                         <Input.TextArea size="large" rows={3} style={{ borderRadius: "10px" }} />
                       </Form.Item>
-                      <Button type="primary" htmlType="submit" size="large" style={{ width: "100%", borderRadius: "10px", fontWeight: "bold" }}>Push Sync to Server</Button>
+                      <Button 
+                        type="primary" 
+                        htmlType="submit" 
+                        size="large" 
+                        loading={saving}
+                        style={{ width: "100%", borderRadius: "10px", fontWeight: "bold" }}
+                      >
+                        Push Sync to Server
+                      </Button>
                     </Form>
                   </Card>
                 )}
