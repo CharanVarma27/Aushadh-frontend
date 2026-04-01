@@ -173,6 +173,10 @@ function PharmacyDashboard() {
           <Menu.Item key="4" icon={<SettingOutlined />} style={{ borderRadius: "8px", marginBottom: "8px" }}>Settings</Menu.Item>
           <Menu.Item key="5" icon={<LogoutOutlined />} onClick={() => navigate("/")} style={{ borderRadius: "8px", color: "#ff4d4f", marginTop: "40px" }}>Log Out</Menu.Item>
         </Menu>
+        
+        <div style={{ position: "absolute", bottom: 20, left: 24, opacity: 0.5, fontSize: "12px" }}>
+          Build v1.1.2 (Fixed Settings Sync)
+        </div>
       </Sider>
 
       {/* Main Content */}
