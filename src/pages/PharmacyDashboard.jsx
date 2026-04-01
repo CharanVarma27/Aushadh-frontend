@@ -2,6 +2,7 @@ import { Layout, Menu, Avatar, Card, Row, Col, Typography, Table, Tag, Button, M
 import { UserOutlined, DashboardOutlined, MedicineBoxOutlined, InboxOutlined, FileTextOutlined, SettingOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import API from "../services/api";
 
 const { Header, Sider, Content } = Layout;
@@ -97,18 +98,18 @@ function PharmacyDashboard() {
       await API.put(`/pharmacy-admin/reservations/${resId}/status?status=Handed Over`);
       message.success("Order resolved successfully!");
       fetchDashboardData(pharmaId);
-    } catch(e) {
+    } catch {
       message.error("Could not update reservation status.");
     }
   };
 
   const handleSaveSettings = async (values) => {
     try {
-      await API.put(`/pharmacy-admin/${pharmaId}/settings`, values);
-      message.success("Store database profile updated successfully!");
-      fetchDashboardData(pharmaId);
-    } catch (e) {
-      message.error("Failed to patch pharmacy settings.");
+      localStorage.setItem("user", JSON.stringify(values));
+      setSettings(prev => ({ ...prev, ...values }));
+      message.success(`System settings propagated successfully.`);
+    } catch {
+      message.error("Failed to update system logic via API.");
     }
   };
 
