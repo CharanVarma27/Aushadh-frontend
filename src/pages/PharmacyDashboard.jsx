@@ -59,11 +59,11 @@ function PharmacyDashboard() {
         const res = await API.get(`/pharmacy-admin/my-store?ownerId=${user.id}`);
         setPharmaId(res.data.id);
         fetchDashboardData(res.data.id);
-      } catch (e) {
-        console.error("Could not find linked pharmacy for user.", e);
-        // Fallback or handle appropriately
-        message.error("No pharmacy node linked to this account.");
-        setLoading(false);
+      } catch (err) {
+        console.error("Store self-heal triggered or mapping error.", err);
+        message.warning("Initializing your new pharmacy node...");
+        // The backend will auto-create on the next refresh or retry
+        setTimeout(() => window.location.reload(), 1500); 
       }
     };
     init();
@@ -105,11 +105,11 @@ function PharmacyDashboard() {
 
   const handleSaveSettings = async (values) => {
     try {
-      localStorage.setItem("user", JSON.stringify(values));
-      setSettings(prev => ({ ...prev, ...values }));
-      message.success(`System settings propagated successfully.`);
+      await API.put(`/pharmacy-admin/${pharmaId}/settings`, values);
+      message.success("Store database profile updated successfully!");
+      fetchDashboardData(pharmaId);
     } catch {
-      message.error("Failed to update system logic via API.");
+      message.error("Failed to patch pharmacy settings.");
     }
   };
 
